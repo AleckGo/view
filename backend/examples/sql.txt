@@ -1,0 +1,47 @@
+-- Create klines table for 1-minute candlestick data
+CREATE TABLE IF NOT EXISTS klines_1m (
+    symbol          VARCHAR(20) NOT NULL,
+    timestamp       BIGINT NOT NULL,
+    open            DOUBLE PRECISION NOT NULL,
+    high            DOUBLE PRECISION NOT NULL,
+    low             DOUBLE PRECISION NOT NULL,
+    close           DOUBLE PRECISION NOT NULL,
+    volume          DOUBLE PRECISION NOT NULL,
+    taker_buy_volume DOUBLE PRECISION NOT NULL,
+    net_volume      DOUBLE PRECISION NOT NULL,
+    PRIMARY KEY (symbol, timestamp)
+);
+
+-- Convert to TimescaleDB hypertable for better time-series performance
+-- chunk_time_interval = 7 days (in milliseconds: 7 * 24 * 60 * 60 * 1000 = 604800000)
+SELECT create_hypertable('klines_1m', 'timestamp', 
+    chunk_time_interval => 604800000,
+    if_not_exists => TRUE
+);
+
+-- Create index for faster queries by symbol
+CREATE INDEX IF NOT EXISTS idx_klines_1m_symbol ON klines_1m (symbol, timestamp DESC);
+
+-- Table for tracking active symbols
+CREATE TABLE IF NOT EXISTS tracked_symbols (
+    symbol      VARCHAR(20) PRIMARY KEY,
+    added_at    TIMESTAMP DEFAULT NOW(),
+    is_active   BOOLEAN DEFAULT TRUE
+);
+
+-- Insert some default symbols
+INSERT INTO tracked_symbols (symbol) VALUES 
+    ('btcusdt'),
+    ('ethusdt')
+ON CONFLICT (symbol) DO NOTHING;
+
+-- Useful queries:
+
+-- Get latest timestamp for a symbol
+-- SELECT MAX(timestamp) FROM klines_1m WHERE symbol = 'BTCUSDT';
+
+-- Get latest N candles for a symbol
+-- SELECT * FROM klines_1m WHERE symbol = 'BTCUSDT' ORDER BY timestamp DESC LIMIT 100;
+
+-- Get all active symbols
+-- SELECT symbol FROM tracked_symbols WHERE is_active = TRUE;

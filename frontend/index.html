@@ -1,0 +1,2918 @@
+<!DOCTYPE html>
+<html lang="en" class="theme-dark" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tradingview</title>
+    <link rel="icon" type="image/png" href="https://img.cathiefish.art/tradingview/icon2.jpg">
+    <link rel="apple-touch-icon" href="https://img.cathiefish.art/tradingview/icon2.jpg">
+    <!-- Config -->
+    <script src="auth-config.js?v=2"></script>
+    <style>
+        :root {
+            --tv-color-platform-background: #131722;
+            --tv-color-pane-background: #1e222d;
+            --tv-color-toolbar-button-background-hover: #2a2e39;
+            --tv-color-toolbar-button-background-active: #2962ff;
+            --tv-color-toolbar-button-text: #787b86;
+            --tv-color-toolbar-button-text-hover: #d1d4dc;
+            --tv-color-toolbar-button-text-active: #fff;
+            --tv-color-border: #2a2e39;
+            --tv-color-item-active-text: #d1d4dc;
+            --tv-color-text-secondary: #787b86;
+            --tv-color-positive: #26a69a;
+            --tv-color-negative: #ef5350;
+            --tv-color-blue: #2962ff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif;
+            background: var(--tv-color-platform-background);
+            color: var(--tv-color-item-active-text);
+            user-select: none;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #363a45;
+            border-radius: 2px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4a4e58;
+        }
+
+        .layout-container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        #tv_chart_container {
+            flex: 1;
+            height: 100%;
+            min-width: 0;
+            background: #0F0F0F;
+        }
+
+        /* Right widgets area */
+        .right-widgets {
+            display: flex;
+            height: 100%;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        /* Watchlist Panel */
+        .watchlist-panel {
+            width: 0;
+            height: 100%;
+            background: #0F0F0F;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            opacity: 0;
+            position: relative;
+        }
+
+        .watchlist-panel.is-visible {
+            width: 300px;
+            opacity: 1;
+        }
+
+        /* Widgetbar Resizer Handle */
+        .widgetbar-handle {
+            width: 6px;
+            height: 100%;
+            cursor: col-resize;
+            background-color: #3D3D3D;
+            border-right: 1px solid #131722;
+            transition: background-color 0.2s, width 0.1s;
+            z-index: 10;
+            touch-action: none;
+            flex-shrink: 0;
+            order: -1;
+        }
+
+        /* Hide widgetbar handle when panel is not visible */
+        .right-widgets:has(.watchlist-panel:not(.is-visible)) .widgetbar-handle {
+            display: none;
+        }
+
+        /* Removed hover and drag color effects */
+        /* Removed widgetbar-handle white indicator line */
+
+        /* Guide lines also do not change color */
+
+        body.resizing {
+            cursor: col-resize !important;
+            user-select: none;
+        }
+
+        /* Panel Header */
+        .panel-header {
+            height: 43px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .panel-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            /* Left position: adjust separator left margin here, 0 = flush left */
+            right: 0;
+            height: 4px;
+            /* Height: adjust separator height here */
+            background-color: #3D3D3D;
+            /* Color: change separator color here */
+            border-bottom: 1px solid #3D3D3D;
+        }
+
+        /* Dropdown Trigger */
+        .list-selector {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px 6px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .list-selector:hover {
+            background: var(--tv-color-toolbar-button-background-hover);
+        }
+
+        .list-selector-text {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--tv-color-item-active-text);
+            margin-left: 16px;
+        }
+
+        .list-selector-arrow {
+            color: var(--tv-color-text-secondary);
+        }
+
+        /* Header Actions */
+        .header-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .header-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: transparent;
+            color: var(--tv-color-item-active-text);
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.15s;
+        }
+
+        .header-btn:hover {
+            background: var(--tv-color-toolbar-button-background-hover);
+        }
+
+        /* Dropdown Menu */
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 48px;
+            left: 8px;
+            width: 240px;
+            background: var(--tv-color-pane-background);
+            border: 1px solid var(--tv-color-border);
+            border-radius: 6px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            z-index: 100;
+            padding: 8px 0;
+        }
+
+        .dropdown-menu.is-open {
+            display: block;
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            cursor: pointer;
+            color: var(--tv-color-item-active-text);
+            font-size: 13px;
+            transition: background 0.1s;
+        }
+
+        .dropdown-item:hover {
+            background: var(--tv-color-toolbar-button-background-hover);
+        }
+
+        .dropdown-item svg {
+            margin-right: 10px;
+            color: var(--tv-color-text-secondary);
+            flex-shrink: 0;
+        }
+
+        .dropdown-item:hover svg {
+            color: var(--tv-color-item-active-text);
+        }
+
+        .dropdown-item.is-active {
+            background: rgba(41, 98, 255, 0.1);
+            color: var(--tv-color-blue);
+        }
+
+        .dropdown-item.is-active svg {
+            color: var(--tv-color-blue);
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: var(--tv-color-border);
+            margin: 8px 0;
+        }
+
+        .dropdown-section-title {
+            padding: 8px 12px 4px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--tv-color-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Add Symbol Panel */
+        .add-symbol-panel {
+            display: none;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--tv-color-border);
+            background: var(--tv-color-pane-background);
+        }
+
+        .add-symbol-panel.is-open {
+            display: flex;
+            gap: 8px;
+        }
+
+        .add-symbol-input {
+            flex: 1;
+            background: var(--tv-color-platform-background);
+            border: 1px solid var(--tv-color-border);
+            border-radius: 4px;
+            padding: 6px 10px;
+            color: var(--tv-color-item-active-text);
+            font-size: 13px;
+            outline: none;
+        }
+
+        .add-symbol-input:focus {
+            border-color: var(--tv-color-blue);
+        }
+
+        .add-symbol-btn {
+            padding: 6px 12px;
+            background: var(--tv-color-toolbar-button-background-hover);
+            border: none;
+            border-radius: 4px;
+            color: var(--tv-color-item-active-text);
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .add-symbol-btn:hover {
+            background: #363a45;
+        }
+
+        /* List Header */
+        .list-header {
+            display: flex;
+            padding: 8px 12px;
+            font-size: 11px;
+            color: var(--tv-color-text-secondary);
+            flex-shrink: 0;
+            border-bottom: 1px solid var(--tv-color-border);
+        }
+
+        .list-header-symbol {
+            flex: 1;
+        }
+
+        .list-header-values {
+            display: flex;
+            gap: 24px;
+            padding-right: 8px;
+        }
+
+        .list-header-values span {
+            text-align: right;
+        }
+
+        .list-header-values span:first-child {
+            min-width: 70px;
+        }
+
+        .list-header-values span:last-child {
+            min-width: 60px;
+        }
+
+        /* List Content */
+        .list-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        /* Watchlist Item */
+        .watchlist-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(42, 46, 57, 0.3);
+            cursor: grab;
+            transition: background 0.1s;
+            position: relative;
+        }
+
+        .watchlist-item:hover {
+            background: var(--tv-color-toolbar-button-background-hover);
+        }
+
+        .watchlist-item:active {
+            cursor: grabbing;
+        }
+
+        .watchlist-item.is-dragging {
+            opacity: 0.5;
+            background: var(--tv-color-toolbar-button-background-hover);
+        }
+
+        .watchlist-item.drag-over-top {
+            border-top: 2px solid var(--tv-color-blue);
+        }
+
+        .watchlist-item.drag-over-bottom {
+            border-bottom: 2px solid var(--tv-color-blue);
+        }
+
+        .watchlist-item.is-selected {
+            background: var(--tv-color-toolbar-button-background-hover);
+            position: relative;
+        }
+
+        .watchlist-item.is-selected::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--tv-color-blue);
+        }
+
+        .item-grip {
+            color: #4a4e58;
+            margin-right: 8px;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        .watchlist-item:hover .item-grip {
+            opacity: 1;
+        }
+
+        .item-symbol {
+            flex: 1;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--tv-color-item-active-text);
+        }
+
+        .item-values {
+            display: flex;
+            gap: 24px;
+            text-align: right;
+            padding-right: 8px;
+        }
+
+        .item-last {
+            font-size: 13px;
+            font-weight: 500;
+            min-width: 70px;
+        }
+
+        .item-change {
+            font-size: 13px;
+            font-weight: 500;
+            min-width: 60px;
+        }
+
+        .item-change.positive {
+            color: var(--tv-color-positive);
+        }
+
+        .item-change.negative {
+            color: var(--tv-color-negative);
+        }
+
+        .is-positive {
+            color: var(--tv-color-positive);
+        }
+
+        .is-negative {
+            color: var(--tv-color-negative);
+        }
+
+        .item-remove {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--tv-color-toolbar-button-background-hover);
+            border: none;
+            border-radius: 4px;
+            color: var(--tv-color-text-secondary);
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.15s, color 0.15s;
+        }
+
+        .watchlist-item:hover .item-remove {
+            opacity: 1;
+        }
+
+        .item-remove:hover {
+            color: var(--tv-color-negative);
+        }
+
+        /* Right Toolbar */
+        .right-toolbar {
+            width: 52px;
+            height: 100%;
+            background: #0F0F0F;
+            border-left: 1px solid var(--tv-color-border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 4px 0;
+            flex-shrink: 0;
+        }
+
+        .toolbar-button {
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: transparent;
+            color: var(--tv-color-toolbar-button-text);
+            cursor: pointer;
+            border-radius: 4px;
+            margin: 1px 0;
+            transition: all 0.1s;
+            position: relative;
+        }
+
+        .toolbar-button:hover {
+            background: var(--tv-color-toolbar-button-background-hover);
+            color: var(--tv-color-toolbar-button-text-hover);
+        }
+
+        .toolbar-button.is-active {
+            color: var(--tv-color-blue);
+        }
+
+        .toolbar-button.is-active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 8px;
+            bottom: 8px;
+            width: 2px;
+            background: var(--tv-color-blue);
+            border-radius: 0 2px 2px 0;
+        }
+
+        .toolbar-separator {
+            width: 24px;
+            height: 1px;
+            background: var(--tv-color-border);
+            margin: 6px 0;
+        }
+
+        .toolbar-spacer {
+            flex: 1;
+        }
+
+        .icon-svg {
+            width: 44px;
+            height: 44px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+        }
+
+        /* Light theme */
+        html.theme-light {
+            --tv-color-platform-background: #ffffff;
+            --tv-color-pane-background: #f0f3fa;
+            --tv-color-toolbar-button-background-hover: #e0e3eb;
+            --tv-color-toolbar-button-text: #6a6d78;
+            --tv-color-toolbar-button-text-hover: #131722;
+            --tv-color-border: #e0e3eb;
+            --tv-color-item-active-text: #131722;
+            --tv-color-text-secondary: #6a6d78;
+        }
+
+        html.theme-light .watchlist-item.is-selected::before {
+            background: var(--tv-color-blue);
+        }
+
+        html.theme-light .watchlist-panel,
+        html.theme-light .right-toolbar {
+            background: #ffffff;
+        }
+
+        html.theme-light .widgetbar-handle {
+            background-color: #e0e3eb;
+            border-right-color: #d1d4dc;
+        }
+
+        html.theme-light .panel-header::after {
+            background-color: #e0e3eb;
+            border-bottom-color: #d1d4dc;
+        }
+
+        html.theme-light .chart-divider {
+            background-color: #e0e3eb;
+            border-color: #d1d4dc;
+        }
+
+        html.theme-light .modal-dialog {
+            background: #ffffff;
+            border-color: #e0e3eb;
+        }
+
+        html.theme-light .modal-input {
+            background: #f0f3fa;
+            border-color: #e0e3eb;
+            color: #131722;
+        }
+
+        html.theme-light .modal-input:focus {
+            border-color: var(--tv-color-blue);
+        }
+
+        html.theme-light .modal-input::placeholder {
+            color: #6a6d78;
+        }
+
+        html.theme-light .modal-btn-cancel {
+            border-color: #e0e3eb;
+            color: #131722;
+        }
+
+        html.theme-light .modal-btn-cancel:hover {
+            background: #f0f3fa;
+        }
+
+        html.theme-light ::-webkit-scrollbar-thumb {
+            background: #c0c4cc;
+        }
+
+        html.theme-light ::-webkit-scrollbar-thumb:hover {
+            background: #a0a4ac;
+        }
+
+        /* Empty state */
+        .empty-state {
+            padding: 24px;
+            text-align: center;
+            color: var(--tv-color-text-secondary);
+            font-size: 13px;
+        }
+
+        /* Override TradingView internal toolbar background color */
+        #tv_chart_container iframe {
+            background: #0F0F0F !important;
+        }
+
+        /* Layout Selector Popup */
+        .layout-selector-popup {
+            display: none;
+            position: fixed;
+            background: var(--tv-color-pane-background);
+            border: 1px solid var(--tv-color-border);
+            border-radius: 8px;
+            padding: 12px 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+        }
+
+        .layout-selector-popup.is-open {
+            display: block;
+        }
+
+        .layout-selector-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--tv-color-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+
+        .layout-options {
+            display: flex;
+            flex-direction: row;
+            gap: 8px;
+        }
+
+        .layout-option {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            background: transparent;
+            border: 1px solid var(--tv-color-border);
+            border-radius: 6px;
+            color: var(--tv-color-text-secondary);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .layout-option:hover {
+            background: var(--tv-color-toolbar-button-background-hover);
+            color: var(--tv-color-item-active-text);
+            border-color: var(--tv-color-item-active-text);
+        }
+
+        .layout-option.is-active {
+            background: rgba(41, 98, 255, 0.15);
+            border-color: var(--tv-color-blue);
+            color: var(--tv-color-blue);
+        }
+
+        .layout-option svg {
+            flex-shrink: 0;
+        }
+
+        /* Canvas Selector Popup */
+        .canvas-selector-popup {
+            display: none;
+            position: fixed;
+            background: var(--tv-color-pane-background);
+            border: 1px solid var(--tv-color-border);
+            border-radius: 8px;
+            padding: 12px 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            min-width: 200px;
+        }
+
+        .canvas-selector-popup.is-open {
+            display: block;
+        }
+
+        .canvas-selector-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--tv-color-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+
+        .canvas-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+
+        .canvas-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--tv-color-text);
+        }
+
+        .canvas-item:hover {
+            background: var(--tv-color-toolbar-button-background-hover);
+        }
+
+        .canvas-item.is-active {
+            background: rgba(41, 98, 255, 0.15);
+            color: var(--tv-color-blue);
+        }
+
+        .canvas-item-name {
+            flex: 1;
+        }
+
+        .canvas-item-delete {
+            opacity: 0;
+            color: var(--tv-color-text-secondary);
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
+        .canvas-item:hover .canvas-item-delete {
+            opacity: 1;
+        }
+
+        .canvas-item-delete:hover {
+            background: rgba(255, 0, 0, 0.2);
+            color: #ff5252;
+        }
+
+        .canvas-actions {
+            display: flex;
+            gap: 8px;
+            border-top: 1px solid var(--tv-color-border);
+            padding-top: 10px;
+        }
+
+        .canvas-btn {
+            flex: 1;
+            padding: 6px 12px;
+            border: 1px solid var(--tv-color-border);
+            border-radius: 4px;
+            background: transparent;
+            color: var(--tv-color-text);
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .canvas-btn:hover {
+            background: var(--tv-color-toolbar-button-background-hover);
+        }
+
+        .canvas-btn.primary {
+            background: var(--tv-color-blue);
+            border-color: var(--tv-color-blue);
+            color: #fff;
+        }
+
+        .canvas-btn.primary:hover {
+            background: #1e53e4;
+        }
+
+        /* Charts Layout Container */
+        .charts-layout {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            background: #0F0F0F;
+        }
+
+        .charts-layout.layout-single {
+            flex-direction: row;
+        }
+
+        .charts-layout.layout-vertical {
+            flex-direction: column;
+        }
+
+        .charts-layout.layout-horizontal {
+            flex-direction: row;
+        }
+
+        .charts-layout.layout-left1-right2 {
+            flex-direction: row;
+        }
+
+        .charts-layout.layout-left1-right2 .chart-cell:first-child {
+            flex: 1;
+        }
+
+        .charts-layout.layout-left1-right2 .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        .charts-layout.layout-left1-right2 .right-panel .chart-cell {
+            flex: 1;
+        }
+
+        .chart-cell {
+            background: #0F0F0F;
+            position: relative;
+            min-height: 0;
+            min-width: 0;
+            overflow: hidden;
+            flex: 1;
+        }
+
+        /* Disable iframe pointer events during divider drag */
+        .chart-cell.no-pointer-events iframe {
+            pointer-events: none;
+        }
+
+        /* Chart Divider (resizable) */
+        .chart-divider {
+            background-color: #3D3D3D;
+            flex-shrink: 0;
+            transition: background-color 0.2s;
+            z-index: 10;
+        }
+
+        .chart-divider:hover {
+            background-color: #5D5D5D;
+        }
+
+        .chart-divider.is-dragging {
+            background-color: var(--tv-color-blue);
+        }
+
+        .charts-layout.layout-vertical .chart-divider {
+            height: 6px;
+            width: 100%;
+            cursor: row-resize;
+            border-top: 1px solid #131722;
+            border-bottom: 1px solid #131722;
+        }
+
+        .charts-layout.layout-horizontal .chart-divider {
+            width: 6px;
+            height: 100%;
+            cursor: col-resize;
+            border-left: 1px solid #131722;
+            border-right: 1px solid #131722;
+        }
+
+        /* Left1-Right2 layout dividers */
+        .charts-layout.layout-left1-right2>.chart-divider {
+            width: 6px;
+            height: 100%;
+            cursor: col-resize;
+            border-left: 1px solid #131722;
+            border-right: 1px solid #131722;
+        }
+
+        .charts-layout.layout-left1-right2 .right-panel .chart-divider {
+            height: 6px;
+            width: 100%;
+            cursor: row-resize;
+            border-top: 1px solid #131722;
+            border-bottom: 1px solid #131722;
+        }
+
+        /* Modal Dialog */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.is-open {
+            display: flex;
+        }
+
+        .modal-dialog {
+            background: var(--tv-color-pane-background);
+            border: 1px solid var(--tv-color-border);
+            border-radius: 8px;
+            padding: 20px;
+            min-width: 320px;
+            max-width: 400px;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--tv-color-item-active-text);
+            margin-bottom: 16px;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 10px 12px;
+            background: #131722;
+            border: 1px solid var(--tv-color-border);
+            border-radius: 4px;
+            color: var(--tv-color-item-active-text);
+            font-size: 14px;
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        .modal-input:focus {
+            border-color: var(--tv-color-blue);
+        }
+
+        .modal-input::placeholder {
+            color: var(--tv-color-text-secondary);
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .modal-btn-cancel {
+            background: transparent;
+            border: 1px solid var(--tv-color-border);
+            color: var(--tv-color-item-active-text);
+        }
+
+        .modal-btn-cancel:hover {
+            background: var(--tv-color-toolbar-button-background-hover);
+        }
+
+        .modal-btn-confirm {
+            background: var(--tv-color-blue);
+            border: 1px solid var(--tv-color-blue);
+            color: white;
+        }
+
+        .modal-btn-confirm:hover {
+            background: #1e53e5;
+        }
+    </style>
+    <script src="charting_library/charting_library.standalone.js"></script>
+    <script src="datafeeds/udf/dist/bundle.js"></script>
+</head>
+
+<body onclick="handleBodyClick(event)">
+    <div class="layout-container">
+        <div id="tv_chart_container" class="charts-layout layout-single">
+            <div class="chart-cell" id="chart_0"></div>
+        </div>
+
+        <div class="right-widgets">
+            <!-- Resizer Handle - on the left side of right-widgets -->
+            <div class="widgetbar-handle" id="widgetbarResizer"></div>
+
+            <!-- Watchlist Panel -->
+            <div class="watchlist-panel is-visible" id="watchlistPanel">
+                <!-- Header -->
+                <div class="panel-header">
+                    <div class="list-selector" id="listSelector" onclick="watchlistManager.toggleDropdown()">
+                        <span class="list-selector-text" id="currentListName">Crypto</span>
+                        <svg class="list-selector-arrow" width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z" />
+                        </svg>
+                    </div>
+                    <div class="header-actions">
+                        <button class="header-btn" id="btnAddSymbol" title="Add Symbol">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                        </button>
+                        <button class="header-btn" title="Settings">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <circle cx="12" cy="12" r="1"></circle>
+                                <circle cx="19" cy="12" r="1"></circle>
+                                <circle cx="5" cy="12" r="1"></circle>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Dropdown Menu -->
+                    <div class="dropdown-menu" id="dropdownMenu">
+                        <div class="dropdown-item" id="btnCreateList">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="12" y1="18" x2="12" y2="12"></line>
+                                <line x1="9" y1="15" x2="15" y2="15"></line>
+                            </svg>
+                            Create new list...
+                        </div>
+                        <div class="dropdown-item" id="btnRenameList">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                            Rename
+                        </div>
+                        <div class="dropdown-item" id="btnClearList">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path
+                                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                                </path>
+                            </svg>
+                            Clear list
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <div class="dropdown-section-title">My Lists</div>
+                        <div id="listsContainer"></div>
+                    </div>
+                </div>
+
+                <!-- Add Symbol Panel -->
+                <div class="add-symbol-panel" id="addSymbolPanel">
+                    <input type="text" class="add-symbol-input" id="newSymbolInput" placeholder="Enter symbol...">
+                    <button class="add-symbol-btn" id="btnAddSymbolConfirm">Add</button>
+                </div>
+
+                <!-- List Header -->
+                <div class="list-header">
+                    <span class="list-header-symbol">Symbol</span>
+                    <div class="list-header-values">
+                        <span>Last</span>
+                        <span>Chg%</span>
+                    </div>
+                </div>
+
+                <!-- List Content -->
+                <div class="list-content" id="listContent"></div>
+            </div>
+
+            <!-- Right Toolbar -->
+            <div class="right-toolbar">
+                <button class="toolbar-button is-active" id="btnWatchlist" onclick="togglePanel('watchlist')"
+                    title="Watchlist">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44" width="44" height="44">
+                        <path fill="currentColor" d="M28 16H16v1h12v-1ZM28 20H16v1h12v-1ZM16 24h12v1H16v-1Z"></path>
+                        <path fill="currentColor" fill-rule="evenodd"
+                            d="m22 30-10 4V12a1 1 0 0 1 1-1h18a1 1 0 0 1 1 1v22l-10-4Zm-9 2.52V12h18v20.52l-9-3.6-9 3.6Z">
+                        </path>
+                    </svg>
+                </button>
+                <button class="toolbar-button" id="btnLayout" onclick="toggleLayoutSelector()" title="Chart Layout">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 21 19" width="30" height="30">
+                        <path fill="currentColor"
+                            d="M2.5 1C1.67 1 1 1.67 1 2.5v12c0 .83.67 1.5 1.5 1.5h14c.83 0 1.5-.67 1.5-1.5v-12c0-.83-.67-1.5-1.5-1.5h-14ZM0 2.5A2.5 2.5 0 0 1 2.5 0h14A2.5 2.5 0 0 1 19 2.5v12a2.5 2.5 0 0 1-2.5 2.5h-14A2.5 2.5 0 0 1 0 14.5v-12Z">
+                        </path>
+                    </svg>
+                </button>
+                <button class="toolbar-button" id="btnCanvas" onclick="toggleCanvasSelector()" title="Canvas Selector">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44" width="44" height="44"
+                        fill="currentColor">
+                        <g clip-path="url(#a)">
+                            <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"
+                                d="M22 8a14 14 0 1 0 0 28 14 14 0 0 0 0-28ZM9 22a13 13 0 0 1 22.03-9.35L27.5 16.2a8 8 0 1 0 .68.73l3.55-3.55A13 13 0 1 1 9 22Zm17.79-5.1a7 7 0 1 0 .68.74l-3.62 3.6A2 2 0 0 1 22 24a2 2 0 1 1 1.25-3.56l3.54-3.54Z">
+                            </path>
+                        </g>
+                        <defs>
+                            <clipPath id="a">
+                                <path fill="currentColor" d="M0 0h44v44H0z"></path>
+                            </clipPath>
+                        </defs>
+                    </svg>
+                </button>
+                <div class="toolbar-spacer"></div>
+                <button class="toolbar-button" id="btnTheme" onclick="toggleTheme()" title="Toggle Theme">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44" width="44" height="44" fill="none">
+                        <path fill="currentColor"
+                            d="M22 8c7.732 0 14 6.268 14 14s-6.268 14-14 14S8 29.732 8 22 14.268 8 22 8zm0 1C14.82 9 9 14.82 9 22s5.82 13 13 13 13-5.82 13-13S29.18 9 22 9zm0 4c4.963 0 9 4.037 9 9s-4.037 9-9 9-9-4.037-9-9 4.037-9 9-9zm0 1c-4.411 0-8 3.589-8 8s3.589 8 8 8 8-3.589 8-8-3.589-8-8-8z">
+                        </path>
+                        <path fill="currentColor"
+                            d="M22 5v2h-1V5h1zm0 30v2h-1v-2h1zM7 22v-1h2v1H7zm28 0v-1h2v1h-2zM10.636 10.636l1.414 1.414-.707.707-1.414-1.414.707-.707zm20.728 20.728l1.414 1.414-.707.707-1.414-1.414.707-.707zm-20.728 0l-.707.707-1.414-1.414.707-.707 1.414 1.414zm20.728-20.728l-.707.707-1.414-1.414.707-.707 1.414 1.414z">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Layout Selector Popup -->
+            <div class="layout-selector-popup" id="layoutSelector">
+                <div class="layout-selector-title">Select Layout</div>
+                <div class="layout-options">
+                    <button class="layout-option is-active" data-layout="single" onclick="changeLayout('single')"
+                        title="Single Chart">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 21 19" width="28" height="26">
+                            <path fill="currentColor"
+                                d="M2.5 1C1.67 1 1 1.67 1 2.5v12c0 .83.67 1.5 1.5 1.5h14c.83 0 1.5-.67 1.5-1.5v-12c0-.83-.67-1.5-1.5-1.5h-14ZM0 2.5A2.5 2.5 0 0 1 2.5 0h14A2.5 2.5 0 0 1 19 2.5v12a2.5 2.5 0 0 1-2.5 2.5h-14A2.5 2.5 0 0 1 0 14.5v-12Z">
+                            </path>
+                        </svg>
+                    </button>
+                    <button class="layout-option" data-layout="vertical" onclick="changeLayout('vertical')"
+                        title="Vertical Split">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 21 19" width="28" height="26">
+                            <path fill="currentColor" fill-rule="evenodd"
+                                d="M1 2.5C1 1.67 1.67 1 2.5 1h14c.83 0 1.5.67 1.5 1.5V8H1V2.5ZM1 9v5.5c0 .83.67 1.5 1.5 1.5h14c.83 0 1.5-.67 1.5-1.5V9H1Zm1.5-9A2.5 2.5 0 0 0 0 2.5v12A2.5 2.5 0 0 0 2.5 17h14a2.5 2.5 0 0 0 2.5-2.5v-12A2.5 2.5 0 0 0 16.5 0h-14Z">
+                            </path>
+                        </svg>
+                    </button>
+                    <button class="layout-option" data-layout="horizontal" onclick="changeLayout('horizontal')"
+                        title="Horizontal Split">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 21 19" width="28" height="26">
+                            <path fill="currentColor" fill-rule="evenodd"
+                                d="M1 2.5C1 1.67 1.67 1 2.5 1H9v15H2.5A1.5 1.5 0 0 1 1 14.5v-12ZM10 16h6.5c.83 0 1.5-.67 1.5-1.5v-12c0-.83-.67-1.5-1.5-1.5H10v15ZM2.5 0A2.5 2.5 0 0 0 0 2.5v12A2.5 2.5 0 0 0 2.5 17h14a2.5 2.5 0 0 0 2.5-2.5v-12A2.5 2.5 0 0 0 16.5 0h-14Z">
+                            </path>
+                        </svg>
+                    </button>
+                    <button class="layout-option" data-layout="left1-right2" onclick="changeLayout('left1-right2')"
+                        title="Left 1, Right 2">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 21 19" width="28" height="26">
+                            <path fill="currentColor" fill-rule="evenodd"
+                                d="M1 2.5C1 1.67 1.67 1 2.5 1H9v15H2.5A1.5 1.5 0 0 1 1 14.5v-12ZM10 1h6.5c.83 0 1.5.67 1.5 1.5V8h-8V1Zm0 8v7h6.5c.83 0 1.5-.67 1.5-1.5V9h-8ZM2.5 0A2.5 2.5 0 0 0 0 2.5v12A2.5 2.5 0 0 0 2.5 17h14a2.5 2.5 0 0 0 2.5-2.5v-12A2.5 2.5 0 0 0 16.5 0h-14Z">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Canvas Selector Popup -->
+            <div class="canvas-selector-popup" id="canvasSelector">
+                <div class="canvas-selector-title">Canvas: <span id="canvasSymbol">-</span></div>
+                <div class="canvas-list" id="canvasList"></div>
+                <div class="canvas-actions">
+                    <button class="canvas-btn" onclick="newCanvas()">New</button>
+                    <button class="canvas-btn primary" onclick="saveCanvas()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input Modal Dialog -->
+    <div class="modal-overlay" id="inputModal">
+        <div class="modal-dialog">
+            <div class="modal-title" id="modalTitle">Enter name</div>
+            <input type="text" class="modal-input" id="modalInput" placeholder="Enter name...">
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-cancel" id="modalCancel">Cancel</button>
+                <button class="modal-btn modal-btn-confirm" id="modalConfirm">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============ Global State ============
+        let tvWidgets = [];  // Array of TradingView widgets
+        let currentLayout = 'single';
+        let selectedChartIndex = 0;  // Currently selected chart index
+        let isDarkTheme = true;
+        let isPanelVisible = true;
+        let isResizing = false;
+        let isLayoutSelectorOpen = false;
+
+        window.netVolumeData = {};
+
+        // Layout icons for toolbar button (30x30 size)
+        const layoutIcons = {
+            'single': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 21 19" width="30" height="30"><path fill="currentColor" d="M2.5 1C1.67 1 1 1.67 1 2.5v12c0 .83.67 1.5 1.5 1.5h14c.83 0 1.5-.67 1.5-1.5v-12c0-.83-.67-1.5-1.5-1.5h-14ZM0 2.5A2.5 2.5 0 0 1 2.5 0h14A2.5 2.5 0 0 1 19 2.5v12a2.5 2.5 0 0 1-2.5 2.5h-14A2.5 2.5 0 0 1 0 14.5v-12Z"></path></svg>`,
+            'vertical': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 21 19" width="30" height="30"><path fill="currentColor" fill-rule="evenodd" d="M1 2.5C1 1.67 1.67 1 2.5 1h14c.83 0 1.5.67 1.5 1.5V8H1V2.5ZM1 9v5.5c0 .83.67 1.5 1.5 1.5h14c.83 0 1.5-.67 1.5-1.5V9H1Zm1.5-9A2.5 2.5 0 0 0 0 2.5v12A2.5 2.5 0 0 0 2.5 17h14a2.5 2.5 0 0 0 2.5-2.5v-12A2.5 2.5 0 0 0 16.5 0h-14Z"></path></svg>`,
+            'horizontal': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 21 19" width="30" height="30"><path fill="currentColor" fill-rule="evenodd" d="M1 2.5C1 1.67 1.67 1 2.5 1H9v15H2.5A1.5 1.5 0 0 1 1 14.5v-12ZM10 16h6.5c.83 0 1.5-.67 1.5-1.5v-12c0-.83-.67-1.5-1.5-1.5H10v15ZM2.5 0A2.5 2.5 0 0 0 0 2.5v12A2.5 2.5 0 0 0 2.5 17h14a2.5 2.5 0 0 0 2.5-2.5v-12A2.5 2.5 0 0 0 16.5 0h-14Z"></path></svg>`,
+            'left1-right2': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 21 19" width="30" height="30"><path fill="currentColor" fill-rule="evenodd" d="M1 2.5C1 1.67 1.67 1 2.5 1H9v15H2.5A1.5 1.5 0 0 1 1 14.5v-12ZM10 1h6.5c.83 0 1.5.67 1.5 1.5V8h-8V1Zm0 8v7h6.5c.83 0 1.5-.67 1.5-1.5V9h-8ZM2.5 0A2.5 2.5 0 0 0 0 2.5v12A2.5 2.5 0 0 0 2.5 17h14a2.5 2.5 0 0 0 2.5-2.5v-12A2.5 2.5 0 0 0 16.5 0h-14Z"></path></svg>`
+        };
+
+        // ============ API URL Helper ============
+        function getApiBaseUrl() {
+            // Use configured URL if available
+            if (window.API_CONFIG && window.API_CONFIG.baseUrl) {
+                console.log('Using configured API URL:', window.API_CONFIG.baseUrl);
+                return window.API_CONFIG.baseUrl;
+            }
+            // Handle file:// protocol or empty host
+            if (window.location.protocol === 'file:' || !window.location.host) {
+                console.log('Using default localhost:3000');
+                return 'http://localhost:3000';
+            }
+            // Default: use current page location
+            const url = `${window.location.protocol}//${window.location.host}`;
+            console.log('Using page location as API URL:', url);
+            return url;
+        }
+
+        function getWebSocketUrl() {
+            const baseUrl = getApiBaseUrl();
+            // Convert http(s) to ws(s)
+            const wsUrl = baseUrl.replace(/^http/, 'ws');
+            return `${wsUrl}/ws`;
+        }
+
+        // ============ WebSocket Manager for Real-time Updates ============
+        class RealtimeManager {
+            constructor() {
+                this.ws = null;
+                this.reconnectAttempts = 0;
+                this.maxReconnectAttempts = 10;
+                this.reconnectDelay = 3000;
+                this.subscribedSymbols = new Set();
+                this.onKlineCallback = null;
+            }
+
+            connect() {
+                const wsUrl = getWebSocketUrl();
+                console.log('Connecting to WebSocket:', wsUrl);
+
+                try {
+                    this.ws = new WebSocket(wsUrl);
+
+                    this.ws.onopen = () => {
+                        console.log('WebSocket connected');
+                        this.reconnectAttempts = 0;
+
+                        // Re-subscribe to symbols after reconnect
+                        if (this.subscribedSymbols.size > 0) {
+                            this.subscribe([...this.subscribedSymbols]);
+                        }
+                    };
+
+                    this.ws.onmessage = (event) => {
+                        try {
+                            const msg = JSON.parse(event.data);
+                            this.handleMessage(msg);
+                        } catch (e) {
+                            console.error('Failed to parse WebSocket message:', e);
+                        }
+                    };
+
+                    this.ws.onclose = (event) => {
+                        console.log('WebSocket closed:', event.code, event.reason);
+                        this.scheduleReconnect();
+                    };
+
+                    this.ws.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                    };
+                } catch (e) {
+                    console.error('Failed to create WebSocket:', e);
+                    this.scheduleReconnect();
+                }
+            }
+
+            scheduleReconnect() {
+                if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                    this.reconnectAttempts++;
+                    console.log(`Reconnecting in ${this.reconnectDelay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+                    setTimeout(() => this.connect(), this.reconnectDelay);
+                } else {
+                    console.error('Max reconnection attempts reached');
+                }
+            }
+
+            subscribe(symbols) {
+                symbols.forEach(s => this.subscribedSymbols.add(s.toUpperCase()));
+
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify({
+                        type: 'subscribe',
+                        data: { symbols: symbols.map(s => s.toUpperCase()) }
+                    }));
+                }
+            }
+
+            unsubscribe(symbols) {
+                symbols.forEach(s => this.subscribedSymbols.delete(s.toUpperCase()));
+
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify({
+                        type: 'unsubscribe',
+                        data: { symbols: symbols.map(s => s.toUpperCase()) }
+                    }));
+                }
+            }
+
+            handleMessage(msg) {
+                switch (msg.type) {
+                    case 'kline':
+                        this.handleKlineUpdate(msg.data);
+                        break;
+                    case 'ticker':
+                        this.handleTickerUpdate(msg.data);
+                        break;
+                    case 'pong':
+                        // Heartbeat response
+                        break;
+                }
+            }
+
+            handleKlineUpdate(candle) {
+                // Update watchlist prices - directly update DOM to avoid flickering
+                if (watchlistManager) {
+                    const list = watchlistManager.getCurrentList();
+                    const item = list.find(i => i.symbol.toUpperCase() === candle.symbol.toUpperCase());
+                    if (item) {
+                        const oldPrice = item.last || candle.open;
+                        item.last = candle.close;
+                        // Calculate price change percentage
+                        // Use daily open price for change calculation
+                        const dailyOpen = dailyOpenPrices[candle.symbol.toUpperCase()];
+                        if (dailyOpen > 0) {
+                            item.change = candle.close - dailyOpen;
+                            item.changePercent = ((candle.close - dailyOpen) / dailyOpen) * 100;
+                        }
+                        // Update DOM directly instead of full re-render
+                        const row = document.querySelector(`.watchlist-item[data-symbol="${item.symbol}"]`);
+                        if (row) {
+                            const priceEl = row.querySelector('.item-last');
+                            const changeEl = row.querySelector('.item-change');
+                            if (priceEl) priceEl.textContent = candle.close < 1 ? candle.close.toFixed(6) : candle.close.toFixed(2);
+                            if (changeEl && item.changePercent !== undefined) {
+                                const sign = item.changePercent >= 0 ? '+' : '';
+                                changeEl.textContent = `${sign}${item.changePercent.toFixed(2)}%`;
+                                changeEl.className = `item-change ${item.changePercent >= 0 ? 'positive' : 'negative'}`;
+                            }
+                        }
+                    }
+                }
+
+                // Trigger chart update callback
+                if (this.onKlineCallback) {
+                    this.onKlineCallback(candle);
+                }
+            }
+
+            handleTickerUpdate(ticker) {
+                // Update watchlist with ticker data (keep for compatibility)
+                if (watchlistManager) {
+                    const list = watchlistManager.getCurrentList();
+                    const item = list.find(i => i.symbol.toUpperCase() === ticker.symbol.toUpperCase());
+                    if (item) {
+                        item.last = ticker.price;
+                        // Use daily open for change calculation
+                        const dailyOpen = dailyOpenPrices[ticker.symbol.toUpperCase()];
+                        if (dailyOpen > 0) {
+                            item.change = ticker.price - dailyOpen;
+                            item.changePercent = ((ticker.price - dailyOpen) / dailyOpen) * 100;
+                        }
+                        watchlistManager.saveToStorage();
+                        watchlistManager.render();
+                    }
+                }
+            }
+
+            setKlineCallback(callback) {
+                this.onKlineCallback = callback;
+            }
+
+            disconnect() {
+                if (this.ws) {
+                    this.ws.close();
+                    this.ws = null;
+                }
+            }
+        }
+
+        // Global realtime manager instance
+        let realtimeManager = null;
+
+        // Daily open prices cache (UTC 00:00)
+        let dailyOpenPrices = {};
+
+        // ============ Fetch Supported Symbols from Backend ============
+        async function fetchSupportedSymbols() {
+            try {
+                const res = await fetch(`${getApiBaseUrl()}/tracked-symbols`);
+                if (res.ok) {
+                    const symbols = await res.json();
+                    return symbols.map(symbol => ({
+                        symbol: symbol,
+                        last: 0,
+                        change: 0,
+                        changePercent: 0,
+                        type: 'perpetual'
+                    }));
+                }
+            } catch (e) {
+                console.error('Failed to fetch symbols:', e);
+            }
+            return null;
+        }
+
+        async function fetchDailyOpens() {
+            try {
+                const res = await fetch(`${getApiBaseUrl()}/daily-opens`);
+                if (res.ok) {
+                    dailyOpenPrices = await res.json();
+                }
+            } catch (e) {
+                console.error('Failed to fetch daily opens:', e);
+            }
+        }
+
+        // ============ Watchlist Manager ============
+        class WatchlistManager {
+            constructor() {
+                this.STORAGE_KEY = 'watchlist_data';
+                this.DEFAULT_LISTS = {
+                    'Crypto': [],
+                    'Favorites': []
+                };
+
+                this.lists = this.loadFromStorage();
+                this.currentListName = localStorage.getItem('watchlist_current') || 'Crypto';
+                this.selectedSymbol = localStorage.getItem('watchlist_selected') || 'BTCUSDT';
+                this.isDropdownOpen = false;
+                this.draggedItem = null;
+            }
+
+            loadFromStorage() {
+                try {
+                    const stored = localStorage.getItem(this.STORAGE_KEY);
+                    return stored ? JSON.parse(stored) : { ...this.DEFAULT_LISTS };
+                } catch (e) {
+                    console.error('Failed to load watchlists:', e);
+                    return { ...this.DEFAULT_LISTS };
+                }
+            }
+
+            // Load supported symbols from backend and initialize Crypto list
+            async initFromBackend() {
+                const symbols = await fetchSupportedSymbols();
+                if (symbols && symbols.length > 0) {
+                    // If Crypto list is empty, initialize with backend data
+                    if (!this.lists['Crypto'] || this.lists['Crypto'].length === 0) {
+                        this.lists['Crypto'] = symbols;
+                        this.saveToStorage();
+                    }
+                    // Ensure selectedSymbol is valid
+                    const allSymbols = symbols.map(s => s.symbol);
+                    if (!allSymbols.includes(this.selectedSymbol) && allSymbols.length > 0) {
+                        this.selectedSymbol = allSymbols[0];
+                        this.saveToStorage();
+                    }
+                }
+                this.render();
+            }
+
+            saveToStorage() {
+                try {
+                    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.lists));
+                    localStorage.setItem('watchlist_current', this.currentListName);
+                    localStorage.setItem('watchlist_selected', this.selectedSymbol);
+                } catch (e) {
+                    console.error('Failed to save watchlists:', e);
+                }
+            }
+
+            getCurrentList() {
+                return this.lists[this.currentListName] || [];
+            }
+
+            getAllListNames() {
+                return Object.keys(this.lists);
+            }
+
+            switchList(name) {
+                if (this.lists[name]) {
+                    this.currentListName = name;
+                    this.saveToStorage();
+                    this.render();
+                    this.closeDropdown();
+                }
+            }
+
+            createList(name) {
+                if (name && name.trim() && !this.lists[name]) {
+                    this.lists[name] = [];
+                    this.switchList(name);
+                    return true;
+                }
+                return false;
+            }
+
+            renameList(oldName, newName) {
+                if (newName && newName.trim() && newName !== oldName && !this.lists[newName]) {
+                    this.lists[newName] = this.lists[oldName];
+                    delete this.lists[oldName];
+                    if (this.currentListName === oldName) {
+                        this.currentListName = newName;
+                    }
+                    this.saveToStorage();
+                    this.render();
+                    return true;
+                }
+                return false;
+            }
+
+            clearCurrentList() {
+                this.lists[this.currentListName] = [];
+                this.saveToStorage();
+                this.render();
+            }
+
+            addSymbol(symbol, data = {}) {
+                const list = this.getCurrentList();
+                if (!list.find(item => item.symbol === symbol)) {
+                    list.unshift({
+                        symbol,
+                        last: data.last || 0,
+                        change: data.change || 0,
+                        changePercent: data.changePercent || 0,
+                        type: data.type || 'custom'
+                    });
+                    this.saveToStorage();
+                    this.render();
+                    return true;
+                }
+                return false;
+            }
+
+            removeSymbol(symbol) {
+                this.lists[this.currentListName] = this.getCurrentList().filter(
+                    item => item.symbol !== symbol
+                );
+                this.saveToStorage();
+                this.render();
+            }
+
+            selectSymbol(symbol) {
+                this.selectedSymbol = symbol;
+                this.saveToStorage();
+                this.render();
+                // Only update the currently selected chart
+                if (tvWidgets[selectedChartIndex]) {
+                    tvWidgets[selectedChartIndex].setSymbol(symbol, tvWidgets[selectedChartIndex].activeChart().resolution());
+                }
+            }
+
+            reorderItems(fromIndex, toIndex) {
+                const list = this.getCurrentList();
+                const [item] = list.splice(fromIndex, 1);
+                list.splice(toIndex, 0, item);
+                this.saveToStorage();
+                this.render();
+            }
+
+            toggleDropdown() {
+                this.isDropdownOpen = !this.isDropdownOpen;
+                const menu = document.getElementById('dropdownMenu');
+                if (this.isDropdownOpen) {
+                    this.renderDropdown();
+                    menu.classList.add('is-open');
+                } else {
+                    menu.classList.remove('is-open');
+                }
+            }
+
+            closeDropdown() {
+                this.isDropdownOpen = false;
+                document.getElementById('dropdownMenu').classList.remove('is-open');
+            }
+
+            formatNumber(num, decimals = 2) {
+                return parseFloat(num).toFixed(decimals);
+            }
+
+            render() {
+                const container = document.getElementById('listContent');
+                const list = this.getCurrentList();
+
+                document.getElementById('currentListName').textContent = this.currentListName;
+
+                if (!list || list.length === 0) {
+                    container.innerHTML = '<div class="empty-state">List is empty</div>';
+                    return;
+                }
+
+                container.innerHTML = list.map((item, index) => {
+                    const isUp = item.change >= 0;
+                    const colorClass = isUp ? 'is-positive' : 'is-negative';
+                    const sign = isUp ? '+' : '';
+                    const isSelected = item.symbol === this.selectedSymbol;
+
+                    return `
+                        <div class="watchlist-item ${isSelected ? 'is-selected' : ''}"
+                             draggable="true"
+                             data-index="${index}"
+                             data-symbol="${item.symbol}">
+                            <div class="item-grip">
+                                <svg width="8" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                    <circle cx="8" cy="4" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="8" cy="20" r="2"/>
+                                    <circle cx="16" cy="4" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="16" cy="20" r="2"/>
+                                </svg>
+                            </div>
+                            <div class="item-symbol">${item.symbol}</div>
+                            <div class="item-values">
+                                <div class="item-last ${colorClass}">${this.formatNumber(item.last, item.last < 1 ? 4 : 2)}</div>
+                                <div class="item-change ${colorClass}">${sign}${this.formatNumber(item.changePercent)}%</div>
+                            </div>
+                            <button class="item-remove" data-symbol="${item.symbol}">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+
+                // Attach event listeners
+                this.attachItemEventListeners();
+            }
+
+            renderDropdown() {
+                const container = document.getElementById('listsContainer');
+                container.innerHTML = this.getAllListNames().map(name => {
+                    const isActive = name === this.currentListName;
+                    return `
+                        <div class="dropdown-item ${isActive ? 'is-active' : ''}" data-list="${name}">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="${isActive ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                            </svg>
+                            ${name}
+                        </div>
+                    `;
+                }).join('');
+
+                // Attach event listeners
+                container.querySelectorAll('.dropdown-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        this.switchList(item.dataset.list);
+                    });
+                });
+            }
+
+            attachItemEventListeners() {
+                const items = document.querySelectorAll('.watchlist-item');
+
+                items.forEach(item => {
+                    // Click to select symbol
+                    item.addEventListener('click', (e) => {
+                        if (!e.target.closest('.item-remove')) {
+                            this.selectSymbol(item.dataset.symbol);
+                        }
+                    });
+
+                    // Drag start
+                    item.addEventListener('dragstart', (e) => {
+                        this.draggedItem = {
+                            index: parseInt(item.dataset.index),
+                            element: item
+                        };
+                        item.classList.add('is-dragging');
+                        e.dataTransfer.effectAllowed = 'move';
+                    });
+
+                    // Drag end
+                    item.addEventListener('dragend', () => {
+                        item.classList.remove('is-dragging');
+                        document.querySelectorAll('.watchlist-item').forEach(el => {
+                            el.classList.remove('drag-over-top', 'drag-over-bottom');
+                        });
+                        this.draggedItem = null;
+                    });
+
+                    // Remove button
+                    const removeBtn = item.querySelector('.item-remove');
+                    if (removeBtn) {
+                        removeBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            this.removeSymbol(removeBtn.dataset.symbol);
+                        });
+                    }
+                });
+            }
+
+            handleDragOver(e) {
+                e.preventDefault();
+                if (!this.draggedItem) return;
+
+                const items = [...document.querySelectorAll('.watchlist-item:not(.is-dragging)')];
+                items.forEach(i => i.classList.remove('drag-over-top', 'drag-over-bottom'));
+
+                const afterElement = this.getDragAfterElement(e.clientY);
+                if (afterElement) {
+                    afterElement.classList.add('drag-over-top');
+                } else if (items.length) {
+                    items[items.length - 1].classList.add('drag-over-bottom');
+                }
+            }
+
+            handleDrop(e) {
+                e.preventDefault();
+                if (!this.draggedItem) return;
+
+                const afterElement = this.getDragAfterElement(e.clientY);
+                let newIndex;
+
+                if (!afterElement) {
+                    newIndex = this.getCurrentList().length - 1;
+                } else {
+                    const targetIndex = parseInt(afterElement.dataset.index);
+                    newIndex = this.draggedItem.index < targetIndex ? targetIndex - 1 : targetIndex;
+                }
+
+                if (newIndex !== this.draggedItem.index) {
+                    this.reorderItems(this.draggedItem.index, newIndex);
+                }
+            }
+
+            getDragAfterElement(y) {
+                const items = [...document.querySelectorAll('.watchlist-item:not(.is-dragging)')];
+                return items.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = y - box.top - box.height / 2;
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset, element: child };
+                    }
+                    return closest;
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            }
+        }
+
+        // Initialize watchlist manager
+        const watchlistManager = new WatchlistManager();
+
+        // ============ Custom Datafeed ============
+        class CustomDatafeed {
+            constructor(url) { this.url = url; }
+
+            onReady(cb) {
+                fetch(`${this.url}/config`).then(r => r.json()).then(cfg => {
+                    setTimeout(() => cb({
+                        supported_resolutions: cfg.supported_resolutions || ['1', '5', '15', '60', '240', '1D', '1W', '1M'],
+                        supports_marks: false, supports_timescale_marks: false, supports_time: true
+                    }), 0);
+                }).catch(() => setTimeout(() => cb({ supported_resolutions: ['1', '5', '15', '60', '240', '1D', '1W', '1M'] }), 0));
+            }
+
+            searchSymbols(input, exchange, type, onResult) {
+                fetch(`${this.url}/search?query=${encodeURIComponent(input)}&limit=30`)
+                    .then(r => r.json()).then(onResult).catch(() => onResult([]));
+            }
+
+            resolveSymbol(name, onResolve, onError) {
+                fetch(`${this.url}/symbols?symbol=${encodeURIComponent(name)}`)
+                    .then(r => r.json())
+                    .then(info => onResolve({
+                        ...info, session: '24x7', timezone: 'Etc/UTC', minmov: 1, pricescale: 100000000,
+                        has_intraday: true, has_daily: true, has_weekly_and_monthly: true,
+                        supported_resolutions: ['1', '5', '15', '60', '240', '1D', '1W', '1M'], data_status: 'streaming'
+                    }))
+                    .catch(e => onError(e.message));
+            }
+
+            getBars(symbolInfo, resolution, periodParams, onResult, onError) {
+                console.log('[DEBUG] getBars resolution:', resolution);
+                const { from, to, countBack } = periodParams;
+                const symbol = symbolInfo.ticker || symbolInfo.name;
+                let url = `${this.url}/history?symbol=${symbol}&resolution=${resolution}&from=${from}&to=${to}`;
+                if (countBack) url += `&countback=${countBack}`;
+
+                fetch(url).then(r => r.json()).then(data => {
+                    if (data.s === 'no_data') return onResult([], { noData: true });
+                    if (data.s === 'error') return onError(data.errmsg);
+
+                    const bars = [];
+                    // TradingView ctx.symbol.interval returns "1" for daily, "1" for weekly, "1" for monthly
+                    // So we need to store with BOTH the API resolution key AND the indicator key
+                    const key = `${symbol}_${resolution}`;
+                    if (!window.netVolumeData[key]) window.netVolumeData[key] = {};
+
+                    // Also store with indicator key (ctx.symbol.interval returns "1" for D/W/M)
+                    let indicatorKey = null;
+                    if (resolution === '1D' || resolution === 'D') indicatorKey = `${symbol}_1`;
+                    else if (resolution === '1W' || resolution === 'W') indicatorKey = `${symbol}_1`; // same "1"
+                    else if (resolution === '1M' || resolution === 'M') indicatorKey = `${symbol}_1`; // same "1"
+                    if (indicatorKey && !window.netVolumeData[indicatorKey]) window.netVolumeData[indicatorKey] = {};
+
+                    for (let i = 0; i < data.t.length; i++) {
+                        const time = data.t[i] * 1000;
+                        bars.push({ time, open: data.o[i], high: data.h[i], low: data.l[i], close: data.c[i], volume: data.v[i] });
+                        if (data.nv) {
+                            window.netVolumeData[key][time] = data.nv[i];
+                            if (indicatorKey) window.netVolumeData[indicatorKey][time] = data.nv[i];
+                        }
+                    }
+                    onResult(bars, { noData: bars.length === 0 });
+                }).catch(e => onError(e.message));
+            }
+
+            subscribeBars(symbolInfo, resolution, onTick, listenerGuid) {
+                const symbol = symbolInfo.ticker || symbolInfo.name;
+                this.subscriptions = this.subscriptions || {};
+                this.subscriptions[listenerGuid] = { symbol, resolution, onTick };
+
+                // Set callback on realtimeManager to forward updates
+                if (realtimeManager) {
+                    realtimeManager.setKlineCallback((candle) => {
+                        Object.values(this.subscriptions || {}).forEach(sub => {
+                            if (sub.symbol.toUpperCase() === candle.symbol.toUpperCase()) {
+                                // Update netVolumeData for custom indicators
+                                if (candle.net_volume !== undefined) {
+                                    const key = `${sub.symbol}_${sub.resolution}`;
+                                    if (!window.netVolumeData[key]) window.netVolumeData[key] = {};
+                                    window.netVolumeData[key][candle.timestamp] = candle.net_volume;
+                                    // Also store with indicator key for D/W/M (ctx.symbol.interval returns "1")
+                                    if (sub.resolution === '1D' || sub.resolution === 'D' ||
+                                        sub.resolution === '1W' || sub.resolution === 'W' ||
+                                        sub.resolution === '1M' || sub.resolution === 'M') {
+                                        const indicatorKey = `${sub.symbol}_1`;
+                                        if (!window.netVolumeData[indicatorKey]) window.netVolumeData[indicatorKey] = {};
+                                        window.netVolumeData[indicatorKey][candle.timestamp] = candle.net_volume;
+                                    }
+                                }
+
+                                sub.onTick({
+                                    time: candle.timestamp,
+                                    open: candle.open,
+                                    high: candle.high,
+                                    low: candle.low,
+                                    close: candle.close,
+                                    volume: candle.volume
+                                });
+                            }
+                        });
+                    });
+                }
+            }
+
+            unsubscribeBars(listenerGuid) {
+                if (this.subscriptions) {
+                    delete this.subscriptions[listenerGuid];
+                }
+            }
+
+            getServerTime(cb) { fetch(`${this.url}/time`).then(r => r.text()).then(t => cb(parseInt(t))).catch(() => cb(Math.floor(Date.now() / 1000))); }
+        }
+
+        // ============ Custom Indicators ============
+        const NetVolumeIndicator = {
+            name: 'Net Volume - Corrected',
+            metainfo: {
+                _metainfoVersion: 52, id: 'NetVolumeCorrected@tv-basicstudies-1',
+                name: 'Net Volume - Corrected', description: 'Net Volume - Corrected',
+                shortDescription: 'NV-C', format: { type: 'volume' },
+                is_hidden_study: false, is_price_study: false, linkedToSeries: true,
+                plots: [{ id: 'plot_0', type: 'line' }, { id: 'plot_1', type: 'colorer', target: 'plot_0', palette: 'palette_0' }],
+                palettes: { palette_0: { colors: [{ name: 'Positive' }, { name: 'Negative' }], valToIndex: { 0: 0, 1: 1 } } },
+                defaults: {
+                    palettes: { palette_0: { colors: [{ color: '#26a69a', width: 1, style: 0 }, { color: '#ef5350', width: 1, style: 0 }] } },
+                    styles: { plot_0: { linestyle: 0, linewidth: 1, plottype: 5, transparency: 0, color: '#2196F3' } },
+                    inputs: {}
+                },
+                styles: { plot_0: { title: 'Net Volume', histogramBase: 0 } }, inputs: []
+            },
+            constructor: function () {
+                this.init = function (ctx, inp) { this._context = ctx; this._input = inp; };
+                this.main = function (ctx, inp) {
+                    const time = ctx.symbol.time;
+                    const info = ctx.symbol.info;
+                    const sym = info ? (info.ticker || info.name) : 'BTCUSDT';
+                    const intv = ctx.symbol.interval || '60';
+                    // Use interval directly - getBars now stores with this key too
+                    const key = `${sym}_${intv}`;
+                    let val = 0;
+                    const dataStore = (window.parent && window.parent.netVolumeData) || window.netVolumeData || {};
+                    if (dataStore[key] && dataStore[key][time]) val = dataStore[key][time];
+                    // Debug: always log first 3 calls per interval type
+                    if (!window._nvDebugCount) window._nvDebugCount = {};
+                    if (!window._nvDebugCount[intv]) window._nvDebugCount[intv] = 0;
+                    if (window._nvDebugCount[intv] < 3) {
+                        console.log('[DEBUG] Indicator - interval:', intv, 'key:', key, 'hasData:', !!dataStore[key], 'allKeys:', Object.keys(dataStore));
+                        window._nvDebugCount[intv]++;
+                    }
+                    return [val, val >= 0 ? 0 : 1];
+                };
+            }
+        };
+
+        const CVDIndicator = {
+            name: 'CVD - Corrected',
+            metainfo: {
+                _metainfoVersion: 52, id: 'CVDCorrected@tv-basicstudies-1',
+                name: 'CVD - Corrected', description: 'CVD - Corrected',
+                shortDescription: 'CVD-C', format: { type: 'volume' },
+                is_hidden_study: false, is_price_study: false, linkedToSeries: true,
+                plots: [{ id: 'plot_0', type: 'line' }, { id: 'plot_1', type: 'colorer', target: 'plot_0', palette: 'palette_0' }],
+                palettes: { palette_0: { colors: [{ name: 'Positive' }, { name: 'Negative' }], valToIndex: { 0: 0, 1: 1 } } },
+                defaults: {
+                    palettes: { palette_0: { colors: [{ color: '#26a69a', width: 1, style: 0 }, { color: '#ef5350', width: 1, style: 0 }] } },
+                    styles: { plot_0: { linestyle: 0, linewidth: 2, plottype: 0, transparency: 0, color: '#2196F3' } },
+                    inputs: {}
+                },
+                styles: { plot_0: { title: 'CVD', histogramBase: 0 } }, inputs: []
+            },
+            constructor: function () {
+                this.init = function (ctx, inp) { this._context = ctx; this._input = inp; this._cvdCache = {}; this._lastKey = null; this._lastDataCount = 0; };
+                this.main = function (ctx, inp) {
+                    const time = ctx.symbol.time;
+                    const info = ctx.symbol.info;
+                    const sym = info ? (info.ticker || info.name) : 'BTCUSDT';
+                    const intv = ctx.symbol.interval || '60';
+                    // Use interval directly - getBars now stores with this key too
+                    const key = `${sym}_${intv}`;
+                    const dataStore = (window.parent && window.parent.netVolumeData) || window.netVolumeData || {};
+                    const currentDataCount = dataStore[key] ? Object.keys(dataStore[key]).length : 0;
+                    // Rebuild cache if key changed or new data arrived
+                    if (key !== this._lastKey || !this._cvdCache[key] || currentDataCount !== this._lastDataCount) {
+                        this._lastKey = key;
+                        this._lastDataCount = currentDataCount;
+                        this._cvdCache[key] = {};
+                        if (dataStore[key]) {
+                            const times = Object.keys(dataStore[key]).map(Number).sort((a, b) => a - b);
+                            let cumulative = 0;
+                            for (const t of times) { cumulative += dataStore[key][t]; this._cvdCache[key][t] = cumulative; }
+                        }
+                    }
+                    let val = 0;
+                    if (this._cvdCache[key] && this._cvdCache[key][time]) val = this._cvdCache[key][time];
+                    return [val, val >= 0 ? 0 : 1];
+                };
+            }
+        };
+
+        // ============ UI Functions ============
+        function formatNumber(num, decimals = 2) {
+            return parseFloat(num).toFixed(decimals);
+        }
+
+        function togglePanel(name) {
+            if (name === 'watchlist') {
+                isPanelVisible = !isPanelVisible;
+                const panel = document.getElementById('watchlistPanel');
+                panel.classList.toggle('is-visible', isPanelVisible);
+
+                // Clear inline styles on close, let CSS class control width
+                if (!isPanelVisible) {
+                    panel.style.width = '';
+                }
+
+                document.getElementById('btnWatchlist').classList.toggle('is-active', isPanelVisible);
+            }
+        }
+
+        function toggleTheme() {
+            isDarkTheme = !isDarkTheme;
+            document.documentElement.classList.toggle('theme-dark', isDarkTheme);
+            document.documentElement.classList.toggle('theme-light', !isDarkTheme);
+            document.documentElement.dataset.theme = isDarkTheme ? 'dark' : 'light';
+            // Apply theme to all widgets
+            tvWidgets.forEach(widget => {
+                if (widget) widget.changeTheme(isDarkTheme ? 'Dark' : 'Light');
+            });
+        }
+
+        // ============ Modal Dialog ============
+        function showInputModal(title, defaultValue = '', placeholder = 'Enter name...') {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('inputModal');
+                const titleEl = document.getElementById('modalTitle');
+                const input = document.getElementById('modalInput');
+                const confirmBtn = document.getElementById('modalConfirm');
+                const cancelBtn = document.getElementById('modalCancel');
+
+                titleEl.textContent = title;
+                input.value = defaultValue;
+                input.placeholder = placeholder;
+                modal.classList.add('is-open');
+                input.focus();
+                input.select();
+
+                const cleanup = () => {
+                    modal.classList.remove('is-open');
+                    confirmBtn.removeEventListener('click', onConfirm);
+                    cancelBtn.removeEventListener('click', onCancel);
+                    input.removeEventListener('keydown', onKeydown);
+                    modal.removeEventListener('click', onOverlayClick);
+                };
+
+                const onConfirm = () => {
+                    cleanup();
+                    resolve(input.value.trim());
+                };
+
+                const onCancel = () => {
+                    cleanup();
+                    resolve(null);
+                };
+
+                const onKeydown = (e) => {
+                    if (e.key === 'Enter') onConfirm();
+                    if (e.key === 'Escape') onCancel();
+                };
+
+                const onOverlayClick = (e) => {
+                    if (e.target === modal) onCancel();
+                };
+
+                confirmBtn.addEventListener('click', onConfirm);
+                cancelBtn.addEventListener('click', onCancel);
+                input.addEventListener('keydown', onKeydown);
+                modal.addEventListener('click', onOverlayClick);
+            });
+        }
+
+        // ============ Layout Management ============
+        function selectChart(index) {
+            if (index >= 0 && index < tvWidgets.length) {
+                selectedChartIndex = index;
+            }
+        }
+
+        function toggleLayoutSelector() {
+            isLayoutSelectorOpen = !isLayoutSelectorOpen;
+            const selector = document.getElementById('layoutSelector');
+            const btn = document.getElementById('btnLayout');
+
+            if (isLayoutSelectorOpen) {
+                // Position popup to the left of the button
+                const btnRect = btn.getBoundingClientRect();
+                const selectorWidth = 200; // approximate width
+                selector.style.right = (window.innerWidth - btnRect.left + 8) + 'px';
+                selector.style.top = btnRect.top + 'px';
+            }
+
+            selector.classList.toggle('is-open', isLayoutSelectorOpen);
+        }
+
+        // ============ Canvas Selector ============
+        let isCanvasSelectorOpen = false;
+        let currentCanvasNames = {}; // { chartIndex: canvasName }
+
+        function toggleCanvasSelector() {
+            isCanvasSelectorOpen = !isCanvasSelectorOpen;
+            const selector = document.getElementById('canvasSelector');
+            const btn = document.getElementById('btnCanvas');
+
+            if (isCanvasSelectorOpen) {
+                const btnRect = btn.getBoundingClientRect();
+                selector.style.right = (window.innerWidth - btnRect.left + 8) + 'px';
+                selector.style.top = btnRect.top + 'px';
+                loadCanvasList();
+            }
+
+            selector.classList.toggle('is-open', isCanvasSelectorOpen);
+        }
+
+        function getAuthHeaders() {
+            const user = getAuthUser();
+            return user ? { 'X-User-Id': user.sub } : {};
+        }
+
+        async function loadCanvasList() {
+            const widget = tvWidgets[selectedChartIndex];
+            if (!widget) return;
+
+            const symbol = widget.activeChart().symbol();
+            document.getElementById('canvasSymbol').textContent = symbol;
+
+            try {
+                const res = await fetch(`${getApiBaseUrl()}/canvas/list?symbol=${symbol}`, {
+                    headers: getAuthHeaders()
+                });
+                const data = await res.json();
+                renderCanvasList(data.canvases, symbol);
+            } catch (e) {
+                console.error('Failed to load canvas list:', e);
+            }
+        }
+
+        function renderCanvasList(canvases, symbol) {
+            const list = document.getElementById('canvasList');
+            const currentName = currentCanvasNames[selectedChartIndex] || 'default';
+
+            if (canvases.length === 0) {
+                list.innerHTML = '<div style="color:var(--tv-color-text-secondary);padding:8px;">No saved canvases</div>';
+                return;
+            }
+
+            list.innerHTML = canvases.map(name => `
+                <div class="canvas-item ${name === currentName ? 'is-active' : ''}" onclick="loadCanvas('${symbol}', '${name}')">
+                    <span class="canvas-item-name">${symbol}_${name}</span>
+                    <span class="canvas-item-delete" onclick="event.stopPropagation();deleteCanvas('${symbol}','${name}')">✕</span>
+                </div>
+            `).join('');
+        }
+
+        async function loadCanvas(symbol, name) {
+            const widget = tvWidgets[selectedChartIndex];
+            if (!widget) return;
+
+            try {
+                const res = await fetch(`${getApiBaseUrl()}/canvas/load?symbol=${symbol}&name=${name}`, {
+                    headers: getAuthHeaders()
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    widget.load(data);
+                    // Force background color after load
+                    widget.applyOverrides({
+                        "paneProperties.background": "#0F0F0F",
+                        "paneProperties.backgroundType": "solid",
+                        "scalesProperties.backgroundColor": "#0F0F0F"
+                    });
+                    currentCanvasNames[selectedChartIndex] = name;
+                    // Remember the canvas name used by this symbol
+                    saveLastCanvasName(symbol, name);
+                    toggleCanvasSelector();
+                }
+            } catch (e) {
+                console.error('Failed to load canvas:', e);
+            }
+        }
+
+        async function saveCanvas() {
+            const widget = tvWidgets[selectedChartIndex];
+            if (!widget) return;
+
+            const symbol = widget.activeChart().symbol();
+            const name = currentCanvasNames[selectedChartIndex] || 'default';
+
+            widget.save(async (state) => {
+                try {
+                    const res = await fetch(`${getApiBaseUrl()}/canvas/save`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                        body: JSON.stringify({ symbol, name, data: state })
+                    });
+                    if (res.ok) {
+                        // Save successful, remember the canvas name used by this symbol
+                        saveLastCanvasName(symbol, name);
+                        console.log(`Canvas saved: ${symbol}_${name}`);
+                        // Update auto-save state snapshot
+                        lastSavedStates[selectedChartIndex] = JSON.stringify(state);
+                        toggleCanvasSelector();
+                    } else {
+                        console.error('Failed to save canvas, status:', res.status);
+                        alert('Failed to save canvas. Please check server logs.');
+                    }
+                } catch (e) {
+                    console.error('Failed to save canvas:', e);
+                    alert('Failed to save canvas: ' + e.message);
+                }
+            });
+        }
+
+        // Auto-save related
+        let lastSavedStates = {};
+
+        async function autoSaveCanvas(index) {
+            const widget = tvWidgets[index];
+            if (!widget) return;
+
+            const symbol = widget.activeChart().symbol();
+            const name = currentCanvasNames[index] || 'default';
+
+            widget.save(async (state) => {
+                const stateStr = JSON.stringify(state);
+                if (lastSavedStates[index] === stateStr) return; // No changes
+
+                try {
+                    const res = await fetch(`${getApiBaseUrl()}/canvas/save`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                        body: JSON.stringify({ symbol, name, data: state })
+                    });
+                    if (res.ok) {
+                        lastSavedStates[index] = stateStr;
+                        saveLastCanvasName(symbol, name);
+                        console.log(`Auto-saved: ${symbol}_${name}`);
+                    }
+                } catch (e) {
+                    console.error('Auto-save failed:', e);
+                }
+            });
+        }
+
+        function startAutoSave() {
+            setInterval(() => {
+                tvWidgets.forEach((_, index) => autoSaveCanvas(index));
+            }, 5 * 60 * 1000); // 5 minutes
+        }
+
+        // Save the last used canvas name for each symbol
+        function saveLastCanvasName(symbol, name) {
+            try {
+                const key = 'lastCanvasNames';
+                const data = JSON.parse(localStorage.getItem(key) || '{}');
+                data[symbol.toUpperCase()] = name;
+                localStorage.setItem(key, JSON.stringify(data));
+            } catch (e) {
+                console.error('Failed to save last canvas name:', e);
+            }
+        }
+
+        // Get the last used canvas name for a symbol
+        function getLastCanvasName(symbol) {
+            try {
+                const key = 'lastCanvasNames';
+                const data = JSON.parse(localStorage.getItem(key) || '{}');
+                return data[symbol.toUpperCase()] || null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // Auto-load the last saved canvas
+        async function autoLoadCanvas(widget, index) {
+            const symbol = widget.activeChart().symbol();
+            const lastName = getLastCanvasName(symbol);
+
+            if (lastName) {
+                try {
+                    const res = await fetch(`${getApiBaseUrl()}/canvas/load?symbol=${symbol}&name=${lastName}`, {
+                        headers: getAuthHeaders()
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        widget.load(data);
+                        widget.applyOverrides({
+                            "paneProperties.background": "#0F0F0F",
+                            "paneProperties.backgroundType": "solid",
+                            "scalesProperties.backgroundColor": "#0F0F0F"
+                        });
+                        currentCanvasNames[index] = lastName;
+                        console.log(`Auto-loaded canvas: ${symbol}_${lastName}`);
+                    }
+                } catch (e) {
+                    console.log(`No saved canvas found for ${symbol}`);
+                }
+            }
+        }
+
+        async function newCanvas() {
+            const widget = tvWidgets[selectedChartIndex];
+            if (!widget) return;
+
+            const symbol = widget.activeChart().symbol();
+            const name = await showInputModal('New Canvas Name', 'default', 'Enter canvas name...');
+            if (!name) return;
+
+            currentCanvasNames[selectedChartIndex] = name;
+            await saveCanvas();
+            loadCanvasList();
+        }
+
+        async function deleteCanvas(symbol, name) {
+            if (!confirm(`Delete canvas "${symbol}_${name}"?`)) return;
+
+            try {
+                await fetch(`${getApiBaseUrl()}/canvas/delete?symbol=${symbol}&name=${name}`, {
+                    method: 'DELETE',
+                    headers: getAuthHeaders()
+                });
+                if (currentCanvasNames[selectedChartIndex] === name) {
+                    currentCanvasNames[selectedChartIndex] = 'default';
+                }
+                loadCanvasList();
+            } catch (e) {
+                console.error('Failed to delete canvas:', e);
+            }
+        }
+
+        function changeLayout(layout) {
+            if (layout === currentLayout) {
+                toggleLayoutSelector();
+                return;
+            }
+
+            currentLayout = layout;
+
+            // Update UI
+            document.querySelectorAll('.layout-option').forEach(btn => {
+                btn.classList.toggle('is-active', btn.dataset.layout === layout);
+            });
+
+            // Update toolbar button icon
+            const layoutBtn = document.getElementById('btnLayout');
+            if (layoutBtn && layoutIcons[layout]) {
+                layoutBtn.innerHTML = layoutIcons[layout];
+            }
+
+            // Destroy existing widgets
+            tvWidgets.forEach(widget => {
+                if (widget) {
+                    try {
+                        widget.remove();
+                    } catch (e) {
+                        console.error('Error removing widget:', e);
+                    }
+                }
+            });
+            tvWidgets = [];
+
+            // Update container layout
+            const container = document.getElementById('tv_chart_container');
+            container.className = `charts-layout layout-${layout}`;
+            container.innerHTML = '';
+
+            let chartCount = 1;
+            const defaultSymbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'];
+
+            if (layout === 'single') {
+                // Single chart
+                chartCount = 1;
+
+                const cell0 = document.createElement('div');
+                cell0.className = 'chart-cell';
+                cell0.id = 'chart_0';
+                container.appendChild(cell0);
+
+            } else if (layout === 'vertical' || layout === 'horizontal') {
+                // Two charts with divider
+                chartCount = 2;
+
+                const cell0 = document.createElement('div');
+                cell0.className = 'chart-cell';
+                cell0.id = 'chart_0';
+                container.appendChild(cell0);
+
+                const divider = document.createElement('div');
+                divider.className = 'chart-divider';
+                divider.id = 'chartDivider';
+                container.appendChild(divider);
+
+                const cell1 = document.createElement('div');
+                cell1.className = 'chart-cell';
+                cell1.id = 'chart_1';
+                container.appendChild(cell1);
+
+                initChartDivider(divider, layout);
+
+            } else if (layout === 'left1-right2') {
+                // Left: 1 chart, Right: 2 charts (top/bottom)
+                chartCount = 3;
+
+                const cell0 = document.createElement('div');
+                cell0.className = 'chart-cell';
+                cell0.id = 'chart_0';
+                container.appendChild(cell0);
+
+                const dividerMain = document.createElement('div');
+                dividerMain.className = 'chart-divider';
+                dividerMain.id = 'chartDivider';
+                container.appendChild(dividerMain);
+
+                const rightPanel = document.createElement('div');
+                rightPanel.className = 'right-panel';
+
+                const cell1 = document.createElement('div');
+                cell1.className = 'chart-cell';
+                cell1.id = 'chart_1';
+                rightPanel.appendChild(cell1);
+
+                const dividerRight = document.createElement('div');
+                dividerRight.className = 'chart-divider';
+                dividerRight.id = 'chartDividerRight';
+                rightPanel.appendChild(dividerRight);
+
+                const cell2 = document.createElement('div');
+                cell2.className = 'chart-cell';
+                cell2.id = 'chart_2';
+                rightPanel.appendChild(cell2);
+
+                container.appendChild(rightPanel);
+
+                initChartDivider(dividerMain, 'horizontal');
+                initChartDividerRight(dividerRight);
+            }
+
+            // Initialize new widgets
+            setTimeout(() => {
+                for (let i = 0; i < chartCount; i++) {
+                    const symbol = i === 0 ? (watchlistManager ? watchlistManager.selectedSymbol : defaultSymbols[0]) : defaultSymbols[i];
+                    createWidget(i, symbol);
+                }
+                selectChart(0);
+                toggleLayoutSelector();
+            }, 100);
+        }
+
+        // Right panel divider drag logic (for vertical split in right panel)
+        function initChartDividerRight(divider) {
+            let isDragging = false;
+            let startPos = 0;
+            let startSize0 = 0;
+            let startSize1 = 0;
+
+            divider.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                divider.classList.add('is-dragging');
+                document.body.style.cursor = 'row-resize';
+                document.body.style.userSelect = 'none';
+
+                const cell0 = document.getElementById('chart_1');
+                const cell1 = document.getElementById('chart_2');
+
+                cell0.classList.add('no-pointer-events');
+                cell1.classList.add('no-pointer-events');
+
+                startPos = e.clientY;
+                startSize0 = cell0.offsetHeight;
+                startSize1 = cell1.offsetHeight;
+
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+
+                const cell0 = document.getElementById('chart_1');
+                const cell1 = document.getElementById('chart_2');
+                const delta = e.clientY - startPos;
+
+                const newSize0 = Math.max(100, startSize0 + delta);
+                const newSize1 = Math.max(100, startSize1 - delta);
+                const totalSize = startSize0 + startSize1;
+
+                cell0.style.flex = `0 0 ${(newSize0 / totalSize) * 100}%`;
+                cell1.style.flex = `0 0 ${(newSize1 / totalSize) * 100}%`;
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    divider.classList.remove('is-dragging');
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+
+                    const cell0 = document.getElementById('chart_1');
+                    const cell1 = document.getElementById('chart_2');
+                    if (cell0) cell0.classList.remove('no-pointer-events');
+                    if (cell1) cell1.classList.remove('no-pointer-events');
+                }
+            });
+        }
+
+        // Chart divider drag logic
+        function initChartDivider(divider, layout) {
+            let isDragging = false;
+            let startPos = 0;
+            let startSize0 = 0;
+            let startSize1 = 0;
+
+            const isVertical = layout === 'vertical';
+
+            divider.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                divider.classList.add('is-dragging');
+                document.body.style.cursor = isVertical ? 'row-resize' : 'col-resize';
+                document.body.style.userSelect = 'none';
+
+                const cell0 = document.getElementById('chart_0');
+                // For left1-right2 layout, cell1 is the right-panel
+                const cell1 = currentLayout === 'left1-right2'
+                    ? document.querySelector('.right-panel')
+                    : document.getElementById('chart_1');
+
+                // Disable iframe pointer events
+                document.querySelectorAll('.chart-cell').forEach(cell => {
+                    cell.classList.add('no-pointer-events');
+                });
+
+                startPos = isVertical ? e.clientY : e.clientX;
+                startSize0 = isVertical ? cell0.offsetHeight : cell0.offsetWidth;
+                startSize1 = isVertical ? cell1.offsetHeight : cell1.offsetWidth;
+
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+
+                const cell0 = document.getElementById('chart_0');
+                const cell1 = currentLayout === 'left1-right2'
+                    ? document.querySelector('.right-panel')
+                    : document.getElementById('chart_1');
+                const currentPos = isVertical ? e.clientY : e.clientX;
+                const delta = currentPos - startPos;
+
+                const newSize0 = Math.max(100, startSize0 + delta);
+                const newSize1 = Math.max(100, startSize1 - delta);
+                const totalSize = startSize0 + startSize1;
+
+                cell0.style.flex = `0 0 ${(newSize0 / totalSize) * 100}%`;
+                cell1.style.flex = `0 0 ${(newSize1 / totalSize) * 100}%`;
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    divider.classList.remove('is-dragging');
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+
+                    // Re-enable iframe pointer events
+                    document.querySelectorAll('.chart-cell').forEach(cell => {
+                        cell.classList.remove('no-pointer-events');
+                    });
+                }
+            });
+        }
+
+        function createWidget(index, customSymbol = null) {
+            // Use custom symbol if provided, otherwise use watchlist selected symbol
+            const symbol = customSymbol || (watchlistManager ? watchlistManager.selectedSymbol : 'BTCUSDT');
+
+            const widget = new TradingView.widget({
+                symbol: symbol,
+                interval: "60",
+                container: `chart_${index}`,
+                datafeed: new CustomDatafeed(getApiBaseUrl()),
+                library_path: "charting_library/",
+                locale: "en",
+                fullscreen: false,
+                autosize: true,
+                theme: isDarkTheme ? "Dark" : "Light",
+                load_last_chart: false,
+                custom_indicators_getter: (PineJS) => {
+                    window.PineJS = PineJS;
+                    return Promise.resolve([NetVolumeIndicator, CVDIndicator]);
+                },
+                enabled_features: [
+                    "create_volume_indicator_by_default",
+                    "items_favoriting",
+                    "save_chart_properties_to_local_storage",
+                ],
+                disabled_features: ["study_templates"],
+                favorites: {
+                    intervals: ["5", "15", "60", "240", "1D", "1W", "1M"],
+                    drawingTools: [
+                        "LineToolTrendLine",
+                        "LineToolVertLine",
+                        "LineToolHorzLine",
+                        "LineToolRiskRewardLong",
+                        "LineToolRiskRewardShort",
+                        "LineToolArrowMarkUp",
+                        "LineToolArrowMarkDown",
+                        "LineToolPriceRange",
+                        "LineToolDateRange"
+                    ],
+                },
+                time_frames: [
+                    { text: "5y", resolution: "1W", description: "5 Years" },
+                    { text: "1y", resolution: "1D", description: "1 Year" },
+                    { text: "6m", resolution: "1D", description: "6 Months" },
+                    { text: "3m", resolution: "240", description: "3 Months" },
+                    { text: "1m", resolution: "60", description: "1 Month" },
+                    { text: "5d", resolution: "15", description: "5 Days" },
+                    { text: "1d", resolution: "5", description: "1 Day" },
+                ],
+                overrides: {
+                    "paneProperties.background": "#0F0F0F",
+                    "paneProperties.backgroundType": "solid",
+                    "paneProperties.backgroundGradientStartColor": "#0F0F0F",
+                    "paneProperties.backgroundGradientEndColor": "#0F0F0F",
+                    "scalesProperties.backgroundColor": "#0F0F0F",
+                    "scalesProperties.lineColor": "#2a2e39",
+                    "scalesProperties.textColor": "#787b86",
+                    "mainSeriesProperties.candleStyle.upColor": "#089981",
+                    "mainSeriesProperties.candleStyle.downColor": "#F23645",
+                    "mainSeriesProperties.candleStyle.borderUpColor": "#089981",
+                    "mainSeriesProperties.candleStyle.borderDownColor": "#F23645",
+                    "mainSeriesProperties.candleStyle.wickUpColor": "#089981",
+                    "mainSeriesProperties.candleStyle.wickDownColor": "#F23645",
+                    "mainSeriesProperties.candleStyle.borderColor": "#378658",
+                    "mainSeriesProperties.candleStyle.wickColor": "#737375",
+                    "mainSeriesProperties.columnStyle.upColor": "#26a69a",
+                    "mainSeriesProperties.columnStyle.downColor": "#ef5350",
+                    "mainSeriesProperties.hollowCandleStyle.upColor": "#089981",
+                    "mainSeriesProperties.hollowCandleStyle.downColor": "#F23645",
+                    "mainSeriesProperties.hollowCandleStyle.borderUpColor": "#089981",
+                    "mainSeriesProperties.hollowCandleStyle.borderDownColor": "#F23645",
+                    "mainSeriesProperties.hollowCandleStyle.wickUpColor": "#089981",
+                    "mainSeriesProperties.hollowCandleStyle.wickDownColor": "#F23645",
+                    // Drawing tools default color - purple
+                    "linetooltrendline.linecolor": "#9C27B0",
+                    "linetoolhorzline.linecolor": "#9C27B0",
+                    "linetoolvertline.linecolor": "#9C27B0",
+                    "linetoolray.linecolor": "#9C27B0",
+                    "linetoolinfoline.linecolor": "#9C27B0",
+                    "linetoolarrowmarkup.color": "#9C27B0",
+                    "linetoolarrowmarkdown.color": "#9C27B0",
+                    "linetoolpricerange.linecolor": "#9C27B0",
+                    "linetooldaterange.linecolor": "#9C27B0",
+                },
+                studies_overrides: {
+                    "volume.volume.color.0": "rgba(239, 83, 80, 0.5)",
+                    "volume.volume.color.1": "rgba(38, 166, 154, 0.5)",
+                },
+            });
+
+            widget.onChartReady(() => {
+                widget.activeChart().createStudy("Net Volume - Corrected", false, false);
+
+                // Inject data to iframe
+                try {
+                    const iframe = document.querySelector(`#chart_${index} iframe`);
+                    if (iframe && iframe.contentWindow) {
+                        iframe.contentWindow.netVolumeData = window.netVolumeData;
+                    }
+                } catch (e) {
+                    console.error('Failed to inject data:', e);
+                }
+
+                widget._ready = true;
+
+                // Auto-load the last saved canvas
+                autoLoadCanvas(widget, index);
+            });
+
+            tvWidgets[index] = widget;
+        }
+
+        // ============ Watchlist UI Helper Functions ============
+        function toggleAddPanel() {
+            const panel = document.getElementById('addSymbolPanel');
+            panel.classList.toggle('is-open');
+            if (panel.classList.contains('is-open')) {
+                document.getElementById('newSymbolInput').focus();
+            }
+        }
+
+        function handleBodyClick(e) {
+            if (watchlistManager.isDropdownOpen) {
+                const menu = document.getElementById('dropdownMenu');
+                const selector = document.getElementById('listSelector');
+                if (!menu.contains(e.target) && !selector.contains(e.target)) {
+                    watchlistManager.closeDropdown();
+                }
+            }
+
+            // Close layout selector if clicking outside
+            if (isLayoutSelectorOpen) {
+                const layoutSelector = document.getElementById('layoutSelector');
+                const layoutBtn = document.getElementById('btnLayout');
+                if (!layoutSelector.contains(e.target) && !layoutBtn.contains(e.target)) {
+                    toggleLayoutSelector();
+                }
+            }
+
+            // Close canvas selector if clicking outside
+            if (isCanvasSelectorOpen) {
+                const canvasSelector = document.getElementById('canvasSelector');
+                const canvasBtn = document.getElementById('btnCanvas');
+                if (!canvasSelector.contains(e.target) && !canvasBtn.contains(e.target)) {
+                    toggleCanvasSelector();
+                }
+            }
+        }
+
+        // ============ Initialize Watchlist Event Listeners ============
+        function initWatchlistEvents() {
+            // List container drag events
+            const listContent = document.getElementById('listContent');
+            listContent.addEventListener('dragover', (e) => watchlistManager.handleDragOver(e));
+            listContent.addEventListener('drop', (e) => watchlistManager.handleDrop(e));
+
+            // Add symbol button
+            document.getElementById('btnAddSymbol').addEventListener('click', toggleAddPanel);
+
+            // Add symbol confirm
+            document.getElementById('btnAddSymbolConfirm').addEventListener('click', () => {
+                const input = document.getElementById('newSymbolInput');
+                const symbol = input.value.toUpperCase().trim();
+                if (symbol) {
+                    watchlistManager.addSymbol(symbol);
+                    input.value = '';
+                    toggleAddPanel();
+                }
+            });
+
+            // Add symbol on Enter key
+            document.getElementById('newSymbolInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    document.getElementById('btnAddSymbolConfirm').click();
+                }
+            });
+
+            // List management buttons
+            document.getElementById('btnCreateList').addEventListener('click', async () => {
+                watchlistManager.closeDropdown();
+                const name = await showInputModal('Create New List', '', 'Enter list name...');
+                if (name) {
+                    watchlistManager.createList(name);
+                }
+            });
+
+            document.getElementById('btnRenameList').addEventListener('click', async () => {
+                watchlistManager.closeDropdown();
+                const newName = await showInputModal('Rename List', watchlistManager.currentListName, 'Enter new name...');
+                if (newName) {
+                    watchlistManager.renameList(watchlistManager.currentListName, newName);
+                }
+            });
+
+            document.getElementById('btnClearList').addEventListener('click', () => {
+                if (confirm(`Clear "${watchlistManager.currentListName}"?`)) {
+                    watchlistManager.clearCurrentList();
+                }
+            });
+
+            // Body click to close dropdown
+            document.body.addEventListener('click', handleBodyClick);
+        }
+
+        // ============ Widgetbar Resizer ============
+        function initWidgetbarResizer() {
+            const resizer = document.getElementById('widgetbarResizer');
+            const panel = document.getElementById('watchlistPanel');
+            const container = document.querySelector('.layout-container');
+
+            if (!resizer || !panel) return;
+
+            // Mouse down event
+            resizer.addEventListener('mousedown', (e) => {
+                isResizing = true;
+                resizer.classList.add('dragging');
+                document.body.classList.add('resizing');
+                // Disable transition during drag
+                panel.style.transition = 'none';
+                e.preventDefault();
+            });
+
+            // Mouse move event
+            window.addEventListener('mousemove', (e) => {
+                if (!isResizing) return;
+
+                // Calculate new width: measured from right edge
+                const containerRect = container.getBoundingClientRect();
+                const newWidth = containerRect.right - e.clientX;
+
+                // Clamp min/max width
+                const minWidth = 200;
+                const maxWidth = 600;
+
+                if (newWidth >= minWidth && newWidth <= maxWidth) {
+                    panel.style.width = `${newWidth}px`;
+                }
+            });
+
+            // Mouse up event
+            window.addEventListener('mouseup', () => {
+                if (isResizing) {
+                    isResizing = false;
+                    resizer.classList.remove('dragging');
+                    document.body.classList.remove('resizing');
+                    // Restore transition
+                    panel.style.transition = '';
+                }
+            });
+        }
+
+        // ============ Initialize ============
+        // Wait for backend to be ready
+        async function waitForBackend(maxAttempts = 10, interval = 1000) {
+            for (let i = 0; i < maxAttempts; i++) {
+                try {
+                    const res = await fetch(`${getApiBaseUrl()}/config`, { method: 'GET' });
+                    if (res.ok) return true;
+                } catch (e) {
+                    console.log(`Waiting for backend... (${i + 1}/${maxAttempts})`);
+                }
+                await new Promise(r => setTimeout(r, interval));
+            }
+            return false;
+        }
+
+        async function init() {
+            // Load supported symbols from backend
+            await watchlistManager.initFromBackend();
+
+            // Initialize watchlist
+            initWatchlistEvents();
+            initWidgetbarResizer();
+
+            // Initialize real-time WebSocket connection
+            realtimeManager = new RealtimeManager();
+            realtimeManager.connect();
+
+            // Subscribe to all symbols in watchlist
+            const allSymbols = new Set();
+            Object.values(watchlistManager.lists).forEach(list => {
+                list.forEach(item => allSymbols.add(item.symbol));
+            });
+            if (allSymbols.size > 0) {
+                realtimeManager.subscribe([...allSymbols]);
+            }
+
+            // Smart chart selection: detect which iframe gets focus
+            window.addEventListener('blur', () => {
+                // When window loses focus, an iframe likely got it
+                setTimeout(() => {
+                    const activeEl = document.activeElement;
+                    if (activeEl && activeEl.tagName === 'IFRAME') {
+                        // Find which chart cell contains this iframe
+                        const chartCells = document.querySelectorAll('.chart-cell');
+                        chartCells.forEach((cell, index) => {
+                            if (cell.contains(activeEl)) {
+                                selectChart(index);
+                            }
+                        });
+                    }
+                }, 0);
+            });
+
+            // Initialize with single chart
+            createWidget(0);
+            selectChart(0);
+
+            // Start auto-save
+            startAutoSave();
+        }
+
+        // ============ Authentication Guard ============
+        // ============ Simple Auth Check ============
+        function parseJwt(token) {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(c =>
+                '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+            ).join(''));
+            return JSON.parse(jsonPayload);
+        }
+
+        function checkAuth() {
+            const savedUser = localStorage.getItem('auth_user');
+            const savedToken = localStorage.getItem('auth_token');
+            const loginTime = localStorage.getItem('auth_login_time');
+
+            if (savedUser && savedToken && loginTime) {
+                try {
+                    const maxAge = 144 * 60 * 60 * 1000; // 144 hours
+                    if ((Date.now() - parseInt(loginTime)) < maxAge) {
+                        return JSON.parse(savedUser);
+                    }
+                } catch (e) { }
+            }
+            return null;
+        }
+
+        function getAuthUser() {
+            return checkAuth();
+        }
+
+        window.logout = () => {
+            localStorage.removeItem('auth_user');
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('auth_login_time');
+            window.location.href = './login.html';
+        };
+
+        async function initApp() {
+            const user = checkAuth();
+            if (!user) {
+                window.location.href = './login.html';
+                return;
+            }
+
+            console.log('Authenticated as:', user.email);
+
+            const backendReady = await waitForBackend();
+            if (backendReady) {
+                await fetchDailyOpens();
+                init();
+            } else {
+                alert('Backend server is not responding. Please ensure it is running.');
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+
+</html>

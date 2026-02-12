@@ -1,0 +1,12 @@
+binance_rust
+
+/kiro.json
+
+.claude
+.devcontainer
+storage
+tradingview-demo
+
+backend/.env
+
+/frontend/.env
