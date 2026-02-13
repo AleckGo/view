@@ -9,7 +9,7 @@ window.API_CONFIG = { baseUrl: 'https://view.zsssh.com' };
 const AUTH_CONFIG = {
     // Client ID obtained from GCP Console
     // Replace with your actual Client ID
-    clientId: 'xxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com',
+    clientId: '387672265097-37fstul4tka9bluf1prmcr4cjqfus9d3.apps.googleusercontent.com',
 
     // Authentication success callback
     onSuccess: (user) => {
