@@ -1,4 +1,4 @@
-window.API_CONFIG = { baseUrl: 'https://xxx.xxx.com' };
+window.API_CONFIG = { baseUrl: 'https://view.zsssh.com' };
 
 /**
  * Google OAuth Configuration
